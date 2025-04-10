@@ -65,7 +65,7 @@ APPEND_COMMON="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
 APPEND_BASH="${APPEND_COMMON}
 [ -s ~/.luaver/completions/luaver.bash ] && . ~/.luaver/completions/luaver.bash"
 
-APPEND_ZSH="${APPEND_COMMON} 
+APPEND_ZSH="${APPEND_COMMON}
 [ -s ~/.luaver/completions/luaver.zsh ] && . ~/.luaver/completions/luaver.zsh"
 
 APPEND_FISH="${APPEND_COMMON}
