@@ -400,6 +400,7 @@ __luaver_usage()
     __luaver_print_formatted "   luaver list-luarocks [-r]                Lists all installed luarocks versions"
     __luaver_print_formatted "   luaver current                           Lists present versions being used"
     __luaver_print_formatted "   luaver version                           Displays luaver version"
+    __luaver_print_formatted "   luaver implode                           Completely removes luaver and all installed versions"
     __luaver_print_formatted "\nExamples:\n"
     __luaver_print_formatted "   luaver install 5.3.1                     # Installs lua version 5.3.1"
     __luaver_print_formatted "   luaver install 5.3.0                     # Installs lua version 5.3.0"
@@ -894,6 +895,42 @@ __luaver_version()
     __luaver_print_formatted "Developed by Dhaval Kapil <me@dhavalkapil.com>\n"
 }
 
+__luaver_implode()
+{
+    __luaver_print "This will completely remove luaver and all installed versions of lua, luajit and luarocks."
+    __luaver_print "Are you sure you want to continue? [y/N]: "
+    read -r choice
+    case $choice in
+        [yY][eE][sS] | [yY] )
+            # Remove PATH modifications
+            __luaver_remove_previous_paths "${__luaver_LUA_DIR}"
+            __luaver_remove_previous_paths "${__luaver_LUAJIT_DIR}"
+            __luaver_remove_previous_paths "${__luaver_LUAROCKS_DIR}"
+
+            # Remove luaver directory and all contents
+            if [ -d "${__luaver_LUAVER_DIR}" ]; then
+                __luaver_exec_command rm -rf "${__luaver_LUAVER_DIR}"
+            fi
+
+            # Remove from shell rc files
+            local files_to_clean=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile")
+            local pattern="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
+
+            for file in "${files_to_clean[@]}"; do
+                if [ -f "$file" ]; then
+                    __luaver_exec_command sed -i.bak "\|${pattern}|d" "$file"
+                    __luaver_print "Removed luaver references from ${file}"
+                fi
+            done
+
+            __luaver_print "luaver has been completely removed from your system."
+            ;;
+        * )
+            __luaver_print "Aborting uninstallation."
+            ;;
+    esac
+}
+
 # Init environment
 __luaver_init
 
@@ -934,6 +971,7 @@ luaver()
         "current" )                 __luaver_current;;
         "list-all" )                __luaver_list_all;;
         "version" )                 __luaver_version;;
+        "implode" )                 __luaver_implode;;
         * )                         __luaver_usage;;
     esac
 
