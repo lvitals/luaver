@@ -406,11 +406,52 @@ __luaver_usage()
     __luaver_print_formatted "   luaver use 5.3.1                         # Switches to lua version 5.3.1"
     __luaver_print_formatted "   luaver install-luarocks 2.3.0            # Installs luarocks version 2.3.0"
     __luaver_print_formatted "   luaver uninstall 5.3.0                   # Uninstalls lua version 5.3.0"
+
+    __luaver_print_formatted "   luaver install latest                    # Installs latest lua version"
+    __luaver_print_formatted "   luaver install-luajit latest             # Installs latest luajit version"
+    __luaver_print_formatted "   luaver install-luarocks latest           # Installs latest luarocks version"
+
+    __luaver_print_formatted "   luaver list-all                          # Lists all available lua versions from lua.org"
+}
+
+# Returns the latest lua version available
+__luaver_get_latest_lua_version()
+{
+    __luaver_get_url "http://www.lua.org/ftp/" |
+    'awk' 'match($0, /lua-5\.[0-9]+(\.[0-9]+)?/) { print substr($0, RSTART + 4, RLENGTH - 4) }' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+    'head' -n 1
+}
+
+# Returns the latest luajit version available
+__luaver_get_latest_luajit_version()
+{
+    __luaver_get_url "https://github.com/LuaJIT/LuaJIT/tags" |
+    grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-beta[0-9]\+\)\?"' |
+    sed 's/^v//;s/"$//' |
+    sed -e 's/-beta/.beta./' |
+    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4 -k 5,5nr |
+    sed -e 's/\.beta./-beta/' |
+    'head' -n 1
+}
+
+# Returns the latest luarocks version available
+__luaver_get_latest_luarocks_version()
+{
+    __luaver_get_url "https://luarocks.github.io/luarocks/releases/" |
+    grep -o 'luarocks-[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz' |
+    sed 's/luarocks-\(.*\)\.tar\.gz/\1/' |
+    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+    'head' -n 1
 }
 
 __luaver_install_lua()
 {
     local version=$1
+    if [ "${version}" = "latest" ]; then
+        version=$(__luaver_get_latest_lua_version)
+        __luaver_print "Latest version detected: ${version}"
+    fi
     local lua_dir_name="lua-${version}"
     local archive_name="${lua_dir_name}.tar.gz"
     local url="http://www.lua.org/ftp/${archive_name}"
@@ -529,10 +570,10 @@ __luaver_list_lua()
 {
     if [ "x$1" = "x-r" ]
     then
-        __luaver_get_url "https://www.lua.org/ftp/" |
+        __luaver_get_url "http://www.lua.org/ftp/" |
         'awk' 'match($0, /lua-5\.[0-9]+(\.[0-9]+)?/) { print substr($0, RSTART + 4, RLENGTH - 4) }' |
-        # Sort semver
-        'sort' -t . -k 1,1n -k 2,2n -k 3,3n
+        'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+        'uniq'
     else
         __luaver_print "Installed versions: (currently $(__luaver_get_current_lua_version || echo none))"
         'find' "${__luaver_LUA_DIR}" -name '*.*' -prune | 'awk' -F/ '{ print $NF }'
@@ -542,9 +583,13 @@ __luaver_list_lua()
 __luaver_install_luajit()
 {
     local version=$1
+    if [ "${version}" = "latest" ]; then
+        version=$(__luaver_get_latest_luajit_version)
+        __luaver_print "Latest version detected: ${version}"
+    fi
     local luajit_dir_name="LuaJIT-${version}"
-    local archive_name="${luajit_dir_name}.tar.gz"
-    local url="http://luajit.org/download/${archive_name}"
+    local archive_name="v${version}.tar.gz"
+    local url="https://github.com/LuaJIT/LuaJIT/archive/refs/tags/${archive_name}"
 
     __luaver_print "Installing ${luajit_dir_name}"
 
@@ -552,18 +597,24 @@ __luaver_install_luajit()
 
     __luaver_download_and_unpack "${luajit_dir_name}" "${archive_name}" "${url}"
 
-    __luaver_exec_command cd "${luajit_dir_name}"
+    __luaver_exec_command cd "LuaJIT-${version}"
 
     __luaver_print "Compiling ${luajit_dir_name}"
 
-    __luaver_exec_command make PREFIX="${__luaver_LUAJIT_DIR}/${version}"
+    # Adicionando flags específicas para ARM64
+    if [ "$(uname -m)" = "arm64" ]; then
+        __luaver_print "Detected ARM64 architecture - applying compatibility fixes"
+        __luaver_exec_command make CC="gcc -arch x86_64" PREFIX="${__luaver_LUAJIT_DIR}/${version}"
+    else
+        __luaver_exec_command make PREFIX="${__luaver_LUAJIT_DIR}/${version}"
+    fi
+
     __luaver_exec_command make install PREFIX="${__luaver_LUAJIT_DIR}/${version}"
 
-    # Beta versions do not produce /bin/luajit. Making symlink in such cases.
+    # Cria symlink se necessário
     __luaver_exec_command cd "${__luaver_LUAJIT_DIR}/${version}/bin"
-    if [ ! -f "luajit" ]
-    then
-        __luaver_exec_command ln -sf "luajit-${version}" "${__luaver_LUAJIT_DIR}/${version}/bin/luajit"
+    if [ ! -f "luajit" ]; then
+        __luaver_exec_command ln -sf "luajit-${version}" "luajit"
     fi
 
     __luaver_print "${luajit_dir_name} successfully installed. Do you want to switch to this version? [Y/n]: "
@@ -638,14 +689,14 @@ __luaver_list_luajit()
 {
     if [ "x$1" = "x-r" ]
     then
-        __luaver_get_url "http://luajit.org/download.html" |
-        'awk' '/MD5 Checksums/,/<\/pre/ { print }' |
-        'awk' '/LuaJIT.*gz/ { print $2 }' |
-        'sed' -e s/LuaJIT-// -e s/\.tar\.gz// |
-        # Sort semver with 'beta'
-        'sed' -e s/-beta/.beta./ |
-        'sort' -t . -k 1,1n -k 2,2n -k 3,3n -k 4,4r -k 5,5n -r |
-        'sed' -e s/.beta./-beta/
+        __luaver_get_url "https://github.com/LuaJIT/LuaJIT/tags" |
+        grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-beta[0-9]\+\)\?"' |
+        sed 's/^v//;s/"$//' |
+        # Sort semver with 'beta' in descending order
+        sed -e 's/-beta/.beta./' |
+        sort -t . -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4 -k 5,5nr |
+        sed -e 's/\.beta./-beta/' |
+        'uniq'
     else
         __luaver_print "Installed versions: (currently $(__luaver_get_current_luajit_version || echo none))"
         'find' "${__luaver_LUAJIT_DIR}" -name '*.*' -prune | 'awk' -F/ '{ print $NF }'
@@ -664,6 +715,10 @@ __luaver_install_luarocks()
     lua_version_short=$(__luaver_get_current_lua_version_short)
 
     local version=$1
+    if [ "${version}" = "latest" ]; then
+        version=$(__luaver_get_latest_luarocks_version)
+        __luaver_print "Latest version detected: ${version}"
+    fi
     local luarocks_dir_name="luarocks-${version}"
     local archive_name="${luarocks_dir_name}.tar.gz"
     local url="http://luarocks.org/releases/${archive_name}"
@@ -774,10 +829,11 @@ __luaver_list_luarocks()
 {
     if [ "x$1" = "x-r" ]
     then
-        __luaver_get_url "http://luarocks.github.io/luarocks/releases/releases.json" |
-        'awk' 'match($0, /"[0-9]+\.[0-9]\.[0-9]"/) { print substr($0, RSTART + 1, RLENGTH - 2) } ' |
-        # Sort semver
-        'sort' -t . -k 1,1n -k 2,2n -k 3,3n
+        __luaver_get_url "https://luarocks.github.io/luarocks/releases/" |
+        grep -o 'luarocks-[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz' |
+        sed 's/luarocks-\(.*\)\.tar\.gz/\1/' |
+        sort -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+        'uniq'
     else
         __luaver_print "Installed versions: (currently $(__luaver_get_current_luarocks_version || echo none) in lua $(__luaver_get_lua_version_by_current_luarocks || echo none))"
         'find' "${__luaver_LUAROCKS_DIR}" -name '*.*' -prune | 'awk' -F/ '{ print $NF }' | 'awk' -F_ '{ print $1 "\tlua:" $2}'
@@ -804,6 +860,32 @@ __luaver_current()
     then
         __luaver_print "luarocks-${luarocks_version}"
     fi
+}
+
+__luaver_list_all()
+{
+    __luaver_print "Available Lua versions from lua.org/ftp (newest first):"
+    __luaver_get_url "http://www.lua.org/ftp/" |
+    'awk' 'match($0, /lua-5\.[0-9]+(\.[0-9]+)?/) { print substr($0, RSTART + 4, RLENGTH - 4) }' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+    'uniq'
+    
+    __luaver_print "\nAvailable LuaJIT versions from GitHub tags (newest first):"
+    __luaver_get_url "https://github.com/LuaJIT/LuaJIT/tags" |
+    grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-beta[0-9]\+\)\?"' |
+    sed 's/^v//;s/"$//' |
+    # Sort semver with 'beta' in descending order
+    sed -e 's/-beta/.beta./' |
+    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4 -k 5,5nr |
+    sed -e 's/\.beta./-beta/' |
+    'uniq'
+    
+    __luaver_print "\nAvailable LuaRocks versions from luarocks.github.io (newest first):"
+    __luaver_get_url "https://luarocks.github.io/luarocks/releases/" |
+    grep -o 'luarocks-[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz' |
+    sed 's/luarocks-\(.*\)\.tar\.gz/\1/' |
+    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+    'uniq'
 }
 
 __luaver_version()
@@ -850,6 +932,7 @@ luaver()
         "list-luarocks" )           __luaver_list_luarocks "${@}";;
 
         "current" )                 __luaver_current;;
+        "list-all" )                __luaver_list_all;;
         "version" )                 __luaver_version;;
         * )                         __luaver_usage;;
     esac

@@ -1,7 +1,5 @@
 # Lua Version Manager - luaver
 
-[![Build Status](https://travis-ci.org/DhavalKapil/luaver.svg?branch=master)](https://travis-ci.org/DhavalKapil/luaver) [![Join the chat at https://gitter.im/DhavalKapil/luaver](https://badges.gitter.im/DhavalKapil/luaver.svg)](https://gitter.im/DhavalKapil/luaver?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![License](http://img.shields.io/badge/Licence-MIT-brightgreen.svg)](LICENSE.md)
-
 **luaver** helps to manage and switch between different versions of Lua, LuaJIT and Luarocks.
 
 ## Features
@@ -36,7 +34,7 @@ sudo apt-get install lib32ncurses5-dev
 You can install from the script directly:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/dhavalkapil/luaver/master/install.sh | sh -s - -r v1.1.0
+curl -fsSL https://github.com/lvitals/luaver/blob/master/install.sh | sh -s - -r v1.1.0
 ```
 
 Follow the instructions which appears after the luaver installation.
@@ -46,7 +44,7 @@ Follow the instructions which appears after the luaver installation.
 1. Clone this repository into `~/.luaver`:
 
     ```sh
-    $ git clone https://github.com/DhavalKapil/luaver.git ~/.luaver
+    $ git clone https://github.com/lvitals/luaver.git ~/.luaver
     ```
 
 2. Add `. ~/.luaver/luaver` to your profile such as `.bashrc` or `.zshrc`:
@@ -115,7 +113,7 @@ Usage:
 
 ## Contribution
 
-Feel free to [file issues](https://github.com/DhavalKapil/luaver/issues) and submit [pull requests](https://github.com/DhavalKapil/luaver/pulls) – contributions are welcome.
+Feel free to [file issues](https://github.com/lvitals/luaver/issues) and submit [pull requests](https://github.com/lvitals/luaver/pulls) – contributions are welcome.
 
 ## License
 
