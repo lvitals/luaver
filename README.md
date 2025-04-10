@@ -34,7 +34,7 @@ sudo apt-get install lib32ncurses5-dev
 You can install from the script directly:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/lvitals/luaver/master/install.sh | sh -s - -r v1.2.0
+curl -fsSL https://raw.githubusercontent.com/lvitals/luaver/master/install.sh | sh
 ```
 
 Follow the instructions which appears after the luaver installation.
