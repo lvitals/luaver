@@ -1,37 +1,27 @@
 function luaver
-    set -l luaver_load
-    if which luaver > /dev/null
-        set luaver_load ". luaver"
+    set -l luaver_dir "$HOME/.luaver"
+    set -l luaver_script "$luaver_dir/luaver"
+
+    # If luaver script exists, use it
+    if test -f "$luaver_script"
+        bash -c "source '$luaver_script' && luaver $argv"
     else
-        set luaver_load ". "(cd (dirname (status -f)); pwd)"/luaver"
+        echo "luaver not found at $luaver_script"
+        return 1
     end
 
-    set -l target_cmd "$luaver_load && luaver $argv"
-
+    # Handle PATH updates for specific commands
     switch "$argv[1]"
-
-    case 'install*'
-        echo y\ny\nn\ny | bash -c "$target_cmd" | grep -iv switch
-
-    case 'use*'
-        set -l list (echo "$argv[1]" | sed -e s/use/list/)
-        set -l list_cmd "$luaver_load && luaver $list"
-
-        if not bash -c "$list_cmd" | grep -q "$argv[2]"
-            set -l inst (echo "$argv[1]" | sed -e s/use/install/)
-            echo "Cannot $argv: Run luaver $inst $argv[2]"
-            return 1
-        end
-
-        set -x PATH (bash -c "$target_cmd"' 1>&2 && echo $PATH' | tr : \n)
-
-    case load
-        set -x PATH (bash -c "$luaver_load"' 1>&2 && echo $PATH' | tr : \n)
-
-    case '*'
-        bash -c $target_cmd
-
+        case 'use' 'use-luajit' 'use-luarocks' 'load'
+            # Update PATH from the bash environment
+            set -l new_path (bash -c "source '$luaver_script' && luaver $argv[1] $argv[2..] 1>&2 && printf '%s' \"\$PATH\"")
+            set -gx PATH (string split ':' "$new_path")
+            
+            # For luarocks, also set LUA_PATH and LUA_CPATH
+            if string match -qr '^use-luarocks|use$' -- "$argv[1]"
+                if command -v luarocks >/dev/null
+                    eval (luarocks path --fish)
+                end
+            end
     end
 end
-
-luaver load

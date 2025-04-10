@@ -57,6 +57,7 @@ chmod a+x "${LUAVER_DIR}/luaver"
 
 install_file "${URL}" "completions/luaver.bash" || rm "${LUAVER_DIR}/completions/luaver.bash"
 install_file "${URL}" "completions/luaver.zsh" || rm "${LUAVER_DIR}/completions/luaver.zsh"
+install_file "${URL}" "completions/luaver.fish" || rm "${LUAVER_DIR}/completions/luaver.fish"
 
 ## Set up profile
 APPEND_COMMON="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
@@ -67,9 +68,17 @@ APPEND_BASH="${APPEND_COMMON}
 APPEND_ZSH="${APPEND_COMMON} 
 [ -s ~/.luaver/completions/luaver.zsh ] && . ~/.luaver/completions/luaver.zsh"
 
+APPEND_FISH="${APPEND_COMMON}
+[ -s ~/.luaver/completions/luaver.fish ] && . ~/.luaver/completions/luaver.fish"
+
+
 case "${SHELL_TYPE}" in
     bash ) APPEND="${APPEND_BASH}" ;;
     zsh ) APPEND="${APPEND_ZSH}" ;;
+    fish ) APPEND="${APPEND_FISH}"
+    mkdir -p ~/.config/fish/functions
+    cp "${LUAVER_DIR}/completions/luaver.fish" ~/.config/fish/functions/luaver.fish
+    ;;
     * ) APPEND="${APPEND_COMMON}"
 esac
 
