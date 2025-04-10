@@ -427,22 +427,20 @@ __luaver_get_latest_lua_version()
 # Returns the latest luajit version available
 __luaver_get_latest_luajit_version()
 {
-    __luaver_get_url "https://github.com/LuaJIT/LuaJIT/tags" |
-    grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-beta[0-9]\+\)\?"' |
-    sed 's/^v//;s/"$//' |
-    sed -e 's/-beta/.beta./' |
-    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4 -k 5,5nr |
-    sed -e 's/\.beta./-beta/' |
+    __luaver_get_url "https://api.github.com/repos/LuaJIT/LuaJIT/tags" |
+    'jq' -r '.[].name' |
+    'sed' 's/^v//' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
     'head' -n 1
 }
 
 # Returns the latest luarocks version available
 __luaver_get_latest_luarocks_version()
 {
-    __luaver_get_url "https://luarocks.github.io/luarocks/releases/" |
-    grep -o 'luarocks-[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz' |
-    sed 's/luarocks-\(.*\)\.tar\.gz/\1/' |
-    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+    __luaver_get_url "https://api.github.com/repos/luarocks/luarocks/tags" |
+    'jq' -r '.[].name' |
+    'sed' 's/^v//' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
     'head' -n 1
 }
 
@@ -690,13 +688,10 @@ __luaver_list_luajit()
 {
     if [ "x$1" = "x-r" ]
     then
-        __luaver_get_url "https://github.com/LuaJIT/LuaJIT/tags" |
-        grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-beta[0-9]\+\)\?"' |
-        sed 's/^v//;s/"$//' |
-        # Sort semver with 'beta' in descending order
-        sed -e 's/-beta/.beta./' |
-        sort -t . -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4 -k 5,5nr |
-        sed -e 's/\.beta./-beta/' |
+        __luaver_get_url "https://api.github.com/repos/LuaJIT/LuaJIT/tags" |
+        'jq' -r '.[].name' |
+        'sed' 's/^v//' |
+        'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
         'uniq'
     else
         __luaver_print "Installed versions: (currently $(__luaver_get_current_luajit_version || echo none))"
@@ -830,10 +825,10 @@ __luaver_list_luarocks()
 {
     if [ "x$1" = "x-r" ]
     then
-        __luaver_get_url "https://luarocks.github.io/luarocks/releases/" |
-        grep -o 'luarocks-[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz' |
-        sed 's/luarocks-\(.*\)\.tar\.gz/\1/' |
-        sort -t . -k 1,1nr -k 2,2nr -k 3,3nr |
+        __luaver_get_url "https://api.github.com/repos/luarocks/luarocks/tags" |
+        'jq' -r '.[].name' |
+        'sed' 's/^v//' |
+        'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
         'uniq'
     else
         __luaver_print "Installed versions: (currently $(__luaver_get_current_luarocks_version || echo none) in lua $(__luaver_get_lua_version_by_current_luarocks || echo none))"
@@ -865,28 +860,23 @@ __luaver_current()
 
 __luaver_list_all()
 {
-    __luaver_print "Available Lua versions from lua.org/ftp (newest first):"
-    __luaver_get_url "http://www.lua.org/ftp/" |
-    'awk' 'match($0, /lua-5\.[0-9]+(\.[0-9]+)?/) { print substr($0, RSTART + 4, RLENGTH - 4) }' |
-    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr |
-    'uniq'
+    __luaver_print "Available Lua versions from GitHub (newest first):"
+    __luaver_get_url "https://api.github.com/repos/lua/lua/tags" |
+    'jq' -r '.[].name' |
+    'sed' 's/^v//' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr
     
-    __luaver_print "\nAvailable LuaJIT versions from GitHub tags (newest first):"
-    __luaver_get_url "https://github.com/LuaJIT/LuaJIT/tags" |
-    grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+\(-beta[0-9]\+\)\?"' |
-    sed 's/^v//;s/"$//' |
-    # Sort semver with 'beta' in descending order
-    sed -e 's/-beta/.beta./' |
-    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr -k 4,4 -k 5,5nr |
-    sed -e 's/\.beta./-beta/' |
-    'uniq'
+    __luaver_print "\nAvailable LuaJIT versions from GitHub (newest first):"
+    __luaver_get_url "https://api.github.com/repos/LuaJIT/LuaJIT/tags" |
+    'jq' -r '.[].name' |
+    'sed' 's/^v//' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr
     
-    __luaver_print "\nAvailable LuaRocks versions from luarocks.github.io (newest first):"
-    __luaver_get_url "https://luarocks.github.io/luarocks/releases/" |
-    grep -o 'luarocks-[0-9]\+\.[0-9]\+\.[0-9]\+\.tar\.gz' |
-    sed 's/luarocks-\(.*\)\.tar\.gz/\1/' |
-    sort -t . -k 1,1nr -k 2,2nr -k 3,3nr |
-    'uniq'
+    __luaver_print "\nAvailable LuaRocks versions from GitHub (newest first):"
+    __luaver_get_url "https://api.github.com/repos/luarocks/luarocks/tags" |
+    'jq' -r '.[].name' |
+    'sed' 's/^v//' |
+    'sort' -t . -k 1,1nr -k 2,2nr -k 3,3nr
 }
 
 __luaver_version()

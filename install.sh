@@ -48,14 +48,18 @@ done
 print_bold "Installing luaver..."
 
 ## Download script
-URL="https://raw.githubusercontent.com/DhavalKapil/luaver/${REVISION}"
+URL="https://raw.githubusercontent.com/lvitals/luaver/${REVISION}"
 
 mkdir -p "${LUAVER_DIR}/completions"
 
 install_file "${URL}" "luaver"
 chmod a+x "${LUAVER_DIR}/luaver"
 
-install_file "${URL}" "completions/luaver.bash" || rm "${LUAVER_DIR}/completions/luaver.bash"
+# Install all completion files
+install_file "${URL}" "completions/luaver.bash"
+install_file "${URL}" "completions/_luaver"
+install_file "${URL}" "completions/luaver.fish"
+install_file "${URL}" "completions/luaver.zsh"
 
 ## Set up profile
 APPEND_COMMON="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
@@ -63,11 +67,16 @@ APPEND_COMMON="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
 APPEND_BASH="${APPEND_COMMON}
 [ -s ~/.luaver/completions/luaver.bash ] && . ~/.luaver/completions/luaver.bash"
 
-APPEND_ZSH="${APPEND_COMMON}"
+APPEND_ZSH="${APPEND_COMMON}
+[ -s ~/.luaver/completions/_luaver ] && . ~/.luaver/completions/_luaver"
+
+APPEND_FISH="${APPEND_COMMON}
+[ -s ~/.luaver/completions/luaver.fish ] && . ~/.luaver/completions/luaver.fish"
 
 case "${SHELL_TYPE}" in
     bash ) APPEND="${APPEND_BASH}" ;;
     zsh ) APPEND="${APPEND_ZSH}" ;;
+    fish ) APPEND="${APPEND_FISH}" ;;
     * ) APPEND="${APPEND_COMMON}"
 esac
 
