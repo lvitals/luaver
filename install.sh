@@ -28,10 +28,17 @@ install_file()
     fi
 }
 
+
 ## Option parsing
 LUAVER_DIR=~/.luaver
 REVISION=master
-SHELL_TYPE="$(basename /"${SHELL}")"
+# SHELL_TYPE="$(basename /"${SHELL}")"
+
+PARENT_PID=$(ps -p $$ -o ppid=)
+PARENT_NAME=$(ps -p "$PARENT_PID" -o comm=)
+SHELL_TYPE=${PARENT_NAME#-}
+
+echo $SHELL_TYPE
 
 while getopts hr:s: OPT
 do
@@ -68,23 +75,30 @@ APPEND_BASH="${APPEND_COMMON}
 APPEND_ZSH="${APPEND_COMMON}
 [ -s ~/.luaver/completions/luaver.zsh ] && . ~/.luaver/completions/luaver.zsh"
 
-APPEND_FISH="${APPEND_COMMON}
-[ -s ~/.luaver/completions/luaver.fish ] && . ~/.luaver/completions/luaver.fish"
-
 
 case "${SHELL_TYPE}" in
     bash ) APPEND="${APPEND_BASH}" ;;
     zsh ) APPEND="${APPEND_ZSH}" ;;
-    fish ) APPEND="${APPEND_FISH}"
-    mkdir -p ~/.config/fish/functions
-    cp "${LUAVER_DIR}/completions/luaver.fish" ~/.config/fish/functions/luaver.fish
-    ;;
+    fish )
+        mkdir -p ~/.config/fish/functions
+
+        cp "${LUAVER_DIR}/completions/luaver.fish" ~/.config/fish/functions/luaver.fish
+
+        FISH_CONFIG=~/.config/fish/config.fish
+        mkdir -p "$(dirname "$FISH_CONFIG")"
+        touch "$FISH_CONFIG"
+
+        if ! grep -qF 'set -gx PATH ~/.luaver $PATH' "$FISH_CONFIG"; then
+            printf "\n%s\n\n" 'set -gx PATH ~/.luaver $PATH' >> "$FISH_CONFIG"
+        fi
+        ;;
     * ) APPEND="${APPEND_COMMON}"
 esac
 
-if [ -f ~/."${SHELL_TYPE}"rc ]
-then
-    'grep' -qF "${APPEND}" ~/."${SHELL_TYPE}"rc || printf "\n%s\n\n" "${APPEND}" >>~/."${SHELL_TYPE}"rc
+if [ "$SHELL_TYPE" = "fish" ]; then
+    print_bold "To use luaver, you must restart the shell or execute 'source ~/.config/fish/config.fish'"
+elif [ -f ~/."${SHELL_TYPE}"rc ]; then
+    grep -qF "${APPEND}" ~/."${SHELL_TYPE}"rc || printf "\n%s\n\n" "${APPEND}" >>~/."${SHELL_TYPE}"rc
 
     print_bold "Appending the following lines at the end of ~/.${SHELL_TYPE}rc if lines not exists:"
     printf "\n%s\n\n" "${APPEND}"

@@ -885,8 +885,7 @@ __luaver_version()
     __luaver_print_formatted "Developed by Dhaval Kapil <me@dhavalkapil.com>\n"
 }
 
-__luaver_implode()
-{
+__luaver_implode() {
     __luaver_print "This will completely remove luaver and all installed versions of lua, luajit and luarocks."
     __luaver_print "Are you sure you want to continue? [y/N]: "
     read -r choice
@@ -902,16 +901,35 @@ __luaver_implode()
                 __luaver_exec_command rm -rf "${__luaver_LUAVER_DIR}"
             fi
 
-            # Remove from shell rc files
-            local files_to_clean=("$HOME/.bashrc" "$HOME/.zshrc" "$HOME/.bash_profile" "$HOME/.profile")
-            local pattern="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
+            # Remove from shell rc files and completions
+            local files_to_clean=(
+                "$HOME/.bashrc"
+                "$HOME/.zshrc"
+                "$HOME/.bash_profile"
+                "$HOME/.profile"
+                "$HOME/.config/fish/config.fish"  # Fish
+            )
+            
+            local patterns=(
+                "[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
+                "[ -s ~/.luaver/completions/luaver.bash ] && . ~/.luaver/completions/luaver.bash"
+                "[ -s ~/.luaver/completions/luaver.zsh ] && . ~/.luaver/completions/luaver.zsh"
+                "[ -s ~/.luaver/completions/luaver.fish ] && . ~/.luaver/completions/luaver.fish"
+            )
 
             for file in "${files_to_clean[@]}"; do
                 if [ -f "$file" ]; then
-                    __luaver_exec_command sed -i.bak "\|${pattern}|d" "$file"
+                    for pattern in "${patterns[@]}"; do
+                        __luaver_exec_command sed -i.bak "\|${pattern}|d" "$file"
+                    done
                     __luaver_print "Removed luaver references from ${file}"
                 fi
             done
+
+            if [ -f "$HOME/.config/fish/functions/luaver.fish" ]; then
+                __luaver_exec_command rm -f "$HOME/.config/fish/functions/luaver.fish"
+                __luaver_print "Removed Fish completion: ~/.config/fish/functions/luaver.fish"
+            fi
 
             __luaver_print "luaver has been completely removed from your system."
             ;;
