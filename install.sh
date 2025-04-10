@@ -56,6 +56,7 @@ install_file "${URL}" "luaver"
 chmod a+x "${LUAVER_DIR}/luaver"
 
 install_file "${URL}" "completions/luaver.bash" || rm "${LUAVER_DIR}/completions/luaver.bash"
+install_file "${URL}" "completions/luaver.zsh" || rm "${LUAVER_DIR}/completions/luaver.zsh"
 
 ## Set up profile
 APPEND_COMMON="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
@@ -63,7 +64,8 @@ APPEND_COMMON="[ -s ~/.luaver/luaver ] && . ~/.luaver/luaver"
 APPEND_BASH="${APPEND_COMMON}
 [ -s ~/.luaver/completions/luaver.bash ] && . ~/.luaver/completions/luaver.bash"
 
-APPEND_ZSH="${APPEND_COMMON}"
+APPEND_ZSH="${APPEND_COMMON} 
+[ -s ~/.luaver/completions/luaver.zsh ] && . ~/.luaver/completions/luaver.zsh"
 
 case "${SHELL_TYPE}" in
     bash ) APPEND="${APPEND_BASH}" ;;
