@@ -32,13 +32,8 @@ install_file()
 ## Option parsing
 LUAVER_DIR=~/.luaver
 REVISION=master
-# SHELL_TYPE="$(basename /"${SHELL}")"
-
-PARENT_PID=$(ps -p $$ -o ppid=)
-PARENT_NAME=$(ps -p "$PARENT_PID" -o comm=)
-SHELL_TYPE=${PARENT_NAME#-}
-
-echo $SHELL_TYPE
+SHELL_PATH="$SHELL"
+SHELL_TYPE=$(basename "$SHELL_PATH")
 
 while getopts hr:s: OPT
 do
